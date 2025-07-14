@@ -12,10 +12,12 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { WorkspaceSettingsDialog } from "./WorkspaceSettingsDialog";
+import { InvitePeopleDialog } from "./InvitePeopleDialog";
 
 export function ChannelSidebar() {
   const { currentWorkspace, isLoading } = useWorkspace();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
 
   if (isLoading) {
     return (
@@ -58,7 +60,10 @@ export function ChannelSidebar() {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="w-64 bg-white">
               <div className="py-2 px-4 font-medium text-lg border-b">工作区设置</div>
-              <DropdownMenuItem className="py-2 px-4 focus:bg-gray-100 cursor-pointer">
+              <DropdownMenuItem
+                className="py-2 px-4 focus:bg-gray-100 cursor-pointer"
+                onClick={() => setIsInviteOpen(true)}
+              >
                 <User className="mr-2 h-5 w-5 text-gray-600" />
                 <span>邀请成员到 {currentWorkspace.name}</span>
               </DropdownMenuItem>
@@ -91,6 +96,10 @@ export function ChannelSidebar() {
       <WorkspaceSettingsDialog
         isOpen={isSettingsOpen}
         onClose={() => setIsSettingsOpen(false)}
+      />
+      <InvitePeopleDialog
+        isOpen={isInviteOpen}
+        onClose={() => setIsInviteOpen(false)}
       />
     </div>
   );
