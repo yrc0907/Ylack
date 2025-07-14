@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSession } from "next-auth/react";
-import { ChevronsUpDown, Pencil, Trash2, AlertTriangle, User, Settings, ChevronDown, Edit, List, PlusCircle } from "lucide-react";
+import { ChevronsUpDown, Pencil, Trash2, AlertTriangle, User, Settings, ChevronDown, Edit, List, PlusCircle, MessageSquareText, Send, Plus, ChevronRight } from "lucide-react";
 import { useWorkspace } from "@/context/WorkspaceContext";
 import {
   DropdownMenu,
@@ -15,8 +15,14 @@ import {
 import { WorkspaceSettingsDialog, Member } from "./WorkspaceSettingsDialog";
 import { InvitePeopleDialog } from "./InvitePeopleDialog";
 import { JoinWorkspaceDialog } from "./JoinWorkspaceDialog";
+import { CreateChannelDialog } from "./CreateChannelDialog";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
 import { toast } from "sonner";
+
+interface Channel {
+  id: string;
+  name: string;
+}
 
 export function ChannelSidebar() {
   const { currentWorkspace, isLoading: isWorkspaceLoading } = useWorkspace();
@@ -24,25 +30,38 @@ export function ChannelSidebar() {
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
   const [isJoinOpen, setIsJoinOpen] = useState(false);
+  const [isCreateChannelOpen, setIsCreateChannelOpen] = useState(false);
+
   const [members, setMembers] = useState<Member[]>([]);
   const [isMembersLoading, setIsMembersLoading] = useState(true);
+
+  const [channels, setChannels] = useState<Channel[]>([]);
+  const [isChannelsLoading, setIsChannelsLoading] = useState(true);
+  const [isChannelsExpanded, setIsChannelsExpanded] = useState(true);
+
+  const fetchChannels = useCallback(() => {
+    if (currentWorkspace?.id) {
+      setIsChannelsLoading(true);
+      fetch(`/api/workspaces/${currentWorkspace.id}/channels`)
+        .then((res) => res.ok ? res.json() : Promise.reject("Failed to fetch channels"))
+        .then(setChannels)
+        .catch((e) => toast.error(e.toString()))
+        .finally(() => setIsChannelsLoading(false));
+    }
+  }, [currentWorkspace?.id]);
 
   useEffect(() => {
     if (currentWorkspace?.id) {
       setIsMembersLoading(true);
       fetch(`/api/workspaces/${currentWorkspace.id}/members`)
-        .then((res) => {
-          if (!res.ok) throw new Error("Failed to fetch members");
-          return res.json();
-        })
-        .then((data) => setMembers(data))
-        .catch((error) => {
-          console.error(error);
-          toast.error("Could not load workspace members.");
-        })
+        .then((res) => res.ok ? res.json() : Promise.reject("Failed to fetch members"))
+        .then(setMembers)
+        .catch((e) => toast.error(e.toString()))
         .finally(() => setIsMembersLoading(false));
+
+      fetchChannels();
     }
-  }, [currentWorkspace?.id]);
+  }, [currentWorkspace?.id, fetchChannels]);
 
   if (isWorkspaceLoading) {
     return (
@@ -112,13 +131,40 @@ export function ChannelSidebar() {
       </div>
 
       <div className="flex-1 px-3 py-2 space-y-4 overflow-y-auto">
+        <div className="space-y-1">
+          <button className="flex items-center w-full p-2 text-sm font-medium text-gray-200 rounded-md hover:bg-purple-700/50">
+            <MessageSquareText className="mr-3 h-5 w-5 text-gray-400" />
+            <span>Threads</span>
+          </button>
+          <button className="flex items-center w-full p-2 text-sm font-medium text-gray-200 rounded-md hover:bg-purple-700/50">
+            <Send className="mr-3 h-5 w-5 text-gray-400" />
+            <span>Drafts & Sent</span>
+          </button>
+        </div>
         <div>
-          <h3 className="px-2 mb-2 text-xs font-semibold text-gray-300 uppercase tracking-wider">Channels</h3>
-          <div className="space-y-1">
-            <button className="flex items-center w-full p-2 text-sm font-medium text-gray-200 rounded-md bg-purple-700/50">
-              <span className="mr-2">#</span> general
+          <div className="flex items-center justify-between px-2 mb-2">
+            <button className="flex items-center gap-1 flex-1" onClick={() => setIsChannelsExpanded(!isChannelsExpanded)}>
+              <ChevronRight size={14} className={`transition-transform ${isChannelsExpanded ? "rotate-90" : ""}`} />
+              <h3 className="text-xs font-semibold text-gray-300 uppercase tracking-wider">Channels</h3>
+            </button>
+            <button onClick={() => setIsCreateChannelOpen(true)} className="p-1 hover:bg-purple-700 rounded-md" aria-label="Create new channel">
+              <Plus size={16} className="text-gray-400" />
             </button>
           </div>
+          {isChannelsExpanded && (
+            <div className="space-y-1">
+              {isChannelsLoading ? (
+                <p className="p-2 text-sm text-gray-400">Loading channels...</p>
+              ) : (
+                channels.map((channel) => (
+                  <button key={channel.id} className="w-full flex items-center p-2 text-sm font-medium text-left text-gray-200 rounded-md hover:bg-purple-700/50">
+                    <span className="mr-2">#</span>
+                    {channel.name}
+                  </button>
+                ))
+              )}
+            </div>
+          )}
         </div>
         <div>
           <h3 className="px-2 mb-2 text-xs font-semibold text-gray-300 uppercase tracking-wider">Direct Messages</h3>
@@ -156,6 +202,11 @@ export function ChannelSidebar() {
       <JoinWorkspaceDialog
         isOpen={isJoinOpen}
         onClose={() => setIsJoinOpen(false)}
+      />
+      <CreateChannelDialog
+        isOpen={isCreateChannelOpen}
+        onClose={() => setIsCreateChannelOpen(false)}
+        onChannelCreated={fetchChannels}
       />
     </div>
   );
