@@ -1,55 +1,12 @@
 "use client";
 
 import { ChevronsUpDown, Pencil, Trash2, AlertTriangle } from "lucide-react";
-import { useState, useEffect } from "react";
-
-// 定义工作区类型
-interface Workspace {
-  id: string;
-  name: string;
-  description?: string;
-}
-
-// 模拟从API获取工作区数据
-const useWorkspace = () => {
-  const [workspace, setWorkspace] = useState<Workspace | null>(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    // 模拟API调用
-    const fetchWorkspace = async () => {
-      try {
-        // 这里可以替换为实际的API调用
-        // 为了演示，我们随机决定是否有工作区
-        const hasWorkspace = Math.random() > 0.5;
-
-        if (hasWorkspace) {
-          setWorkspace({
-            id: "1",
-            name: "Work2",
-            description: "A workspace for our team"
-          });
-        } else {
-          setWorkspace(null);
-        }
-        setLoading(false);
-      } catch (error) {
-        console.error("Failed to fetch workspace:", error);
-        setWorkspace(null);
-        setLoading(false);
-      }
-    };
-
-    fetchWorkspace();
-  }, []);
-
-  return { workspace, loading };
-};
+import { useWorkspace } from "@/context/WorkspaceContext";
 
 export function ChannelSidebar() {
-  const { workspace, loading } = useWorkspace();
+  const { currentWorkspace, isLoading } = useWorkspace();
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="h-full bg-purple-800 text-white flex flex-col items-center justify-center">
         <p className="text-sm text-gray-300">加载中...</p>
@@ -57,7 +14,7 @@ export function ChannelSidebar() {
     );
   }
 
-  if (!workspace) {
+  if (!currentWorkspace) {
     return (
       <div className="h-full bg-purple-800 text-white flex flex-col items-center justify-center">
         <AlertTriangle className="h-12 w-12 mb-4 text-yellow-400" />
@@ -72,8 +29,8 @@ export function ChannelSidebar() {
   return (
     <div className="h-full bg-purple-800 text-white flex flex-col">
       <div className="h-14 flex items-center px-4 border-b border-purple-900">
-        <h2 className="font-bold text-lg flex-1">{workspace.name}</h2>
-        <button className="p-1 hover:bg-purple-700 rounded" aria-label="Workspace options">
+        <h2 className="font-bold text-lg flex-1">{currentWorkspace.name}</h2>
+        <button className="p-1 hover:bg-purple-700 rounded" aria-label="工作区选项">
           <ChevronsUpDown size={20} />
         </button>
       </div>
@@ -84,10 +41,10 @@ export function ChannelSidebar() {
       <div className="p-2 border-t border-purple-900 flex items-center justify-between">
         <div className="text-sm">Your Name</div>
         <div className="flex gap-2">
-          <button className="p-1 hover:bg-purple-700 rounded" aria-label="Edit profile">
+          <button className="p-1 hover:bg-purple-700 rounded" aria-label="编辑个人资料">
             <Pencil size={16} />
           </button>
-          <button className="p-1 hover:bg-purple-700 rounded" aria-label="Settings">
+          <button className="p-1 hover:bg-purple-700 rounded" aria-label="设置">
             <Trash2 size={16} />
           </button>
         </div>
