@@ -18,7 +18,7 @@ interface WorkspaceContextType {
   workspaces: Workspace[];
   isLoading: boolean;
   error: string | null;
-  setCurrentWorkspace: (workspace: Workspace) => void;
+  switchWorkspace: (workspaceId: string) => Promise<void>;
   fetchWorkspaces: () => Promise<Workspace[]>;
 }
 
@@ -67,9 +67,38 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     }
   };
 
+  // 切换工作区
+  const switchWorkspace = async (workspaceId: string) => {
+    const workspaceToSwitch = workspaces.find(ws => ws.id === workspaceId);
+    if (workspaceToSwitch) {
+      setCurrentWorkspace(workspaceToSwitch);
+      // Optional: Store the current workspace ID in localStorage for persistence
+      localStorage.setItem('currentWorkspaceId', workspaceId);
+      toast.info(`已切换到工作区: ${workspaceToSwitch.name}`);
+    } else {
+      // If workspace is not in the list (e.g., just joined), refetch the list
+      await fetchWorkspaces();
+      // After refetching, the useEffect for setting current workspace should handle it.
+      // We can add a more direct switch here if needed.
+    }
+    router.refresh();
+  };
+
   // 初始化时获取工作区列表
   useEffect(() => {
-    fetchWorkspaces();
+    const savedWorkspaceId = localStorage.getItem('currentWorkspaceId');
+    fetchWorkspaces().then(fetchedWorkspaces => {
+      if (savedWorkspaceId) {
+        const savedWs = fetchedWorkspaces.find(ws => ws.id === savedWorkspaceId);
+        if (savedWs) {
+          setCurrentWorkspace(savedWs);
+          return;
+        }
+      }
+      if (fetchedWorkspaces.length > 0 && !currentWorkspace) {
+        setCurrentWorkspace(fetchedWorkspaces[0]);
+      }
+    });
   }, []);
 
   // 提供上下文值
@@ -78,7 +107,7 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     workspaces,
     isLoading,
     error,
-    setCurrentWorkspace,
+    switchWorkspace,
     fetchWorkspaces,
   };
 

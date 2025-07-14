@@ -20,57 +20,46 @@ interface InvitePeopleDialogProps {
   onClose: () => void;
 }
 
-// Mock function to generate invite code. In a real app, this would be an API call.
-const generateInviteCode = async (workspaceId: string): Promise<string> => {
-  console.log(`Generating new invite code for workspace ${workspaceId}...`);
-  await new Promise((resolve) => setTimeout(resolve, 500)); // Simulate API latency
-  const newCode = Math.random().toString(36).substring(2, 8).toUpperCase();
-  return newCode;
-};
-
-// Mock function to fetch invite code.
-const fetchInviteCode = async (workspaceId: string): Promise<string> => {
-  console.log(`Fetching invite code for workspace ${workspaceId}...`);
-  await new Promise((resolve) => setTimeout(resolve, 300));
-  // In a real app, you might have a persistent code. For now, we generate one.
-  return Math.random().toString(36).substring(2, 8).toUpperCase();
-}
-
 export function InvitePeopleDialog({ isOpen, onClose }: InvitePeopleDialogProps) {
   const { currentWorkspace } = useWorkspace();
   const [inviteCode, setInviteCode] = useState("...");
-  const [isGenerating, setIsGenerating] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const loadInviteCode = useCallback(async () => {
-    if (currentWorkspace) {
-      setIsGenerating(true);
-      // Assuming currentWorkspace has an 'id' property
-      const code = await fetchInviteCode(currentWorkspace.id);
-      setInviteCode(code);
-      setIsGenerating(false);
+  const fetchInviteCode = useCallback(async () => {
+    if (!currentWorkspace) return;
+
+    setIsLoading(true);
+    try {
+      const response = await fetch(`/api/workspaces/${currentWorkspace.id}/invite`);
+      if (!response.ok) {
+        throw new Error("获取邀请码失败");
+      }
+      const data = await response.json();
+      setInviteCode(data.code);
+    } catch (error) {
+      toast.error("无法加载邀请码，请稍后再试。");
+      console.error(error);
+      setInviteCode("N/A");
+    } finally {
+      setIsLoading(false);
     }
   }, [currentWorkspace]);
 
-
   useEffect(() => {
-    if (isOpen) {
-      loadInviteCode();
+    if (isOpen && currentWorkspace) {
+      fetchInviteCode();
     }
-  }, [isOpen, loadInviteCode]);
+  }, [isOpen, currentWorkspace, fetchInviteCode]);
 
-  const handleGenerateNewCode = async () => {
-    if (!currentWorkspace) return;
-    setIsGenerating(true);
-    const newCode = await generateInviteCode(currentWorkspace.id);
-    setInviteCode(newCode);
-    setIsGenerating(false);
-    toast.success("新的邀请码已生成");
+  const handleRefreshCode = () => {
+    fetchInviteCode();
   };
 
   const handleCopyCode = () => {
-    if (!inviteCode || inviteCode === "...") return;
-    navigator.clipboard.writeText(inviteCode);
-    toast.success("邀请码已复制到剪贴板");
+    if (inviteCode && inviteCode !== "..." && inviteCode !== "N/A") {
+      navigator.clipboard.writeText(inviteCode);
+      toast.success("邀请码已复制到剪贴板");
+    }
   };
 
   return (
@@ -85,7 +74,7 @@ export function InvitePeopleDialog({ isOpen, onClose }: InvitePeopleDialogProps)
 
         <div className="text-center py-8">
           <p className="text-5xl font-mono tracking-widest bg-gray-100 py-4 rounded-md">
-            {isGenerating ? "..." : inviteCode}
+            {isLoading ? "..." : inviteCode}
           </p>
         </div>
 
@@ -97,9 +86,9 @@ export function InvitePeopleDialog({ isOpen, onClose }: InvitePeopleDialogProps)
         </div>
 
         <DialogFooter className="sm:justify-between">
-          <Button variant="outline" onClick={handleGenerateNewCode} disabled={isGenerating}>
-            <RefreshCw size={14} className={`mr-2 ${isGenerating ? 'animate-spin' : ''}`} />
-            {isGenerating ? '生成中...' : '新代码'}
+          <Button variant="outline" onClick={handleRefreshCode} disabled={isLoading}>
+            <RefreshCw size={14} className={`mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            {isLoading ? '加载中...' : '刷新'}
           </Button>
           <DialogClose asChild>
             <Button type="button" onClick={onClose}>关闭</Button>

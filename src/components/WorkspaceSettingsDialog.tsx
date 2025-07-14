@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Pencil, Trash } from "lucide-react";
+import { Pencil, Trash, Users, User as UserIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,8 +13,23 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
+  DialogDescription,
 } from "@/components/ui/dialog";
-import { Workspace, useWorkspace } from "@/context/WorkspaceContext";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useWorkspace } from "@/context/WorkspaceContext";
+
+// Define the type for a workspace member
+export interface Member {
+  id: string;
+  role: string;
+  user: {
+    id: string;
+    name: string | null;
+    username: string;
+    image: string | null;
+  };
+}
 
 interface WorkspaceSettingsDialogProps {
   isOpen: boolean;
@@ -24,17 +39,49 @@ interface WorkspaceSettingsDialogProps {
 export function WorkspaceSettingsDialog({ isOpen, onClose }: WorkspaceSettingsDialogProps) {
   const router = useRouter();
   const { currentWorkspace, fetchWorkspaces } = useWorkspace();
+  const [activeTab, setActiveTab] = useState("general");
+
+  // States for general settings
   const [isEditing, setIsEditing] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [workspaceName, setWorkspaceName] = useState(currentWorkspace?.name || "");
   const [isLoading, setIsLoading] = useState(false);
 
-  // 当弹窗打开时，重置状态并设置工作区名称
+  // States for members tab
+  const [members, setMembers] = useState<Member[]>([]);
+  const [isMembersLoading, setIsMembersLoading] = useState(false);
+
+
+  // Fetch members when the dialog is open and the members tab is selected
+  useEffect(() => {
+    if (isOpen && activeTab === "members" && currentWorkspace) {
+      const fetchMembers = async () => {
+        setIsMembersLoading(true);
+        try {
+          const response = await fetch(`/api/workspaces/${currentWorkspace.id}/members`);
+          if (!response.ok) {
+            throw new Error("获取成员列表失败");
+          }
+          const data = await response.json();
+          setMembers(data);
+        } catch (error) {
+          toast.error(error instanceof Error ? error.message : "获取成员时发生错误");
+        } finally {
+          setIsMembersLoading(false);
+        }
+      };
+      fetchMembers();
+    }
+  }, [isOpen, activeTab, currentWorkspace]);
+
+
   const handleOpenChange = (open: boolean) => {
     if (!open) {
       onClose();
       setIsEditing(false);
       setIsDeleting(false);
+      // Reset to the general tab when dialog closes
+      setActiveTab("general");
     } else if (currentWorkspace) {
       setWorkspaceName(currentWorkspace.name);
     }
@@ -98,94 +145,84 @@ export function WorkspaceSettingsDialog({ isOpen, onClose }: WorkspaceSettingsDi
     }
   };
 
-  const renderContent = () => {
+  const renderGeneralSettings = () => {
     if (isEditing) {
       return (
-        <>
-          <DialogHeader>
-            <DialogTitle>编辑工作区</DialogTitle>
-          </DialogHeader>
-
-          <div className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="name">工作区名称</Label>
-              <Input
-                id="name"
-                value={workspaceName}
-                onChange={(e) => setWorkspaceName(e.target.value)}
-                placeholder="输入工作区名称"
-                disabled={isLoading}
-              />
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isLoading}>
-              取消
-            </Button>
-            <Button onClick={handleUpdate} disabled={isLoading}>
-              {isLoading ? "保存中..." : "保存更改"}
-            </Button>
+        <div className="pt-4">
+          <Label htmlFor="name">工作区名称</Label>
+          <Input id="name" value={workspaceName} onChange={(e) => setWorkspaceName(e.target.value)} disabled={isLoading} />
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setIsEditing(false)} disabled={isLoading}>取消</Button>
+            <Button onClick={handleUpdate} disabled={isLoading}>{isLoading ? "保存中..." : "保存"}</Button>
           </DialogFooter>
-        </>
+        </div>
       );
     }
-
     if (isDeleting) {
       return (
-        <>
-          <DialogHeader>
-            <DialogTitle>删除工作区</DialogTitle>
-          </DialogHeader>
-
-          <div className="py-4">
-            <p className="text-center">确定要删除工作区 <strong>{currentWorkspace?.name}</strong> 吗？此操作无法撤销。</p>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleting(false)} disabled={isLoading}>
-              取消
-            </Button>
-            <Button variant="destructive" onClick={handleDelete} disabled={isLoading}>
-              {isLoading ? "删除中..." : "确认删除"}
-            </Button>
+        <div className="pt-4 text-center">
+          <p>确定要删除工作区 <strong>{currentWorkspace?.name}</strong> 吗？此操作无法撤销。</p>
+          <DialogFooter className="mt-4">
+            <Button variant="outline" onClick={() => setIsDeleting(false)} disabled={isLoading}>取消</Button>
+            <Button variant="destructive" onClick={handleDelete} disabled={isLoading}>{isLoading ? "删除中..." : "确认删除"}</Button>
           </DialogFooter>
-        </>
+        </div>
       );
     }
-
     return (
-      <>
-        <DialogHeader>
-          <DialogTitle>工作区设置</DialogTitle>
-        </DialogHeader>
+      <div className="space-y-2 pt-4">
+        <Button variant="outline" className="w-full justify-start" onClick={() => setIsEditing(true)}><Pencil className="mr-2 h-4 w-4" /> 编辑名称</Button>
+        <Button variant="destructive" className="w-full justify-start" onClick={() => setIsDeleting(true)}><Trash className="mr-2 h-4 w-4" /> 删除工作区</Button>
+      </div>
+    );
+  };
 
-        <div className="py-4">
-          <div className="space-y-4">
-            <button
-              onClick={() => setIsEditing(true)}
-              className="flex items-center w-full p-3 rounded-md hover:bg-gray-100 transition"
-            >
-              <Pencil className="mr-2 h-5 w-5 text-gray-600" />
-              <span>编辑工作区</span>
-            </button>
-            <button
-              onClick={() => setIsDeleting(true)}
-              className="flex items-center w-full p-3 rounded-md hover:bg-gray-100 transition text-red-600"
-            >
-              <Trash className="mr-2 h-5 w-5" />
-              <span>删除工作区</span>
-            </button>
+  const renderMembers = () => {
+    if (isMembersLoading) {
+      return <div className="text-center py-8">加载成员中...</div>;
+    }
+    return (
+      <div className="space-y-3 pt-4 max-h-80 overflow-y-auto">
+        {members.map(member => (
+          <div key={member.id} className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Avatar>
+                <AvatarImage src={member.user.image || undefined} />
+                <AvatarFallback>{member.user.name?.charAt(0) || member.user.username.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <div>
+                <p className="font-medium">{member.user.name || member.user.username}</p>
+                <p className="text-sm text-gray-500">{member.user.username}</p>
+              </div>
+            </div>
+            <span className="text-sm text-gray-600 bg-gray-100 px-2 py-1 rounded-md">{member.role}</span>
           </div>
-        </div>
-      </>
+        ))}
+      </div>
     );
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
-        {renderContent()}
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{currentWorkspace?.name} 设置</DialogTitle>
+          <DialogDescription>
+            管理您的工作区设置和成员
+          </DialogDescription>
+        </DialogHeader>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="general">通用</TabsTrigger>
+            <TabsTrigger value="members">成员 ({members.length})</TabsTrigger>
+          </TabsList>
+          <TabsContent value="general">
+            {renderGeneralSettings()}
+          </TabsContent>
+          <TabsContent value="members">
+            {renderMembers()}
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

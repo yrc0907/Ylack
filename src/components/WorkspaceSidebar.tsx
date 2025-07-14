@@ -20,13 +20,13 @@ import { toast } from "sonner";
 export function WorkspaceSidebar() {
   const { data: session } = useSession();
   const [isCreateWorkspaceOpen, setIsCreateWorkspaceOpen] = useState(false);
-  const { currentWorkspace, workspaces, isLoading, setCurrentWorkspace, fetchWorkspaces } = useWorkspace();
+  const { currentWorkspace, workspaces, isLoading, switchWorkspace, fetchWorkspaces } = useWorkspace();
 
   // 处理工作区切换
   const handleWorkspaceChange = (workspaceId: string) => {
     const workspace = workspaces.find((w) => w.id === workspaceId);
     if (workspace) {
-      setCurrentWorkspace(workspace);
+      switchWorkspace(workspace.id);
       toast.success(`已切换到工作区: ${workspace.name}`);
     }
   };
