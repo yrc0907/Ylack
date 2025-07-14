@@ -41,6 +41,18 @@ model Workspace {
   updatedAt   DateTime    @updatedAt
   members     WorkspaceMember[]
   channels    Channel[]
+  invites     WorkspaceInvite[]
+}
+
+model WorkspaceInvite {
+  id          String    @id @default(cuid())
+  code        String    @unique
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  createdAt   DateTime  @default(now())
+  expiresAt   DateTime
+
+  @@index([workspaceId])
 }
 
 model WorkspaceMember {
