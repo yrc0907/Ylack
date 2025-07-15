@@ -76,6 +76,12 @@
   --sidebar-accent-foreground: oklch(0.205 0 0);
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
+
+  /* TipTap editor variables */
+  --tt-gray-light-900: rgba(17, 24, 39, 1);
+  --tt-gray-dark-900: rgba(255, 255, 255, 0.9);
+  --tt-bg-color: var(--background);
+  --tt-scrollbar-color: rgba(0, 0, 0, 0.15);
 }
 
 .dark {
@@ -110,13 +116,139 @@
   --sidebar-accent-foreground: oklch(0.985 0 0);
   --sidebar-border: oklch(1 0 0 / 10%);
   --sidebar-ring: oklch(0.556 0 0);
+
+  /* TipTap editor variables for dark mode */
+  --tt-scrollbar-color: rgba(255, 255, 255, 0.15);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+
   body {
     @apply bg-background text-foreground;
   }
+}
+
+.prose h1 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+}
+
+.prose h2 {
+  font-size: 1.5rem;
+  font-weight: 600;
+  margin-bottom: 0.75rem;
+}
+
+.prose h3 {
+  font-size: 1.25rem;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.prose h1,
+.dark .prose h1 {
+  font-size: 1.875rem !important;
+  /* 30px */
+  line-height: 2.25rem !important;
+  /* 36px */
+  font-weight: 700 !important;
+  margin-top: 0 !important;
+  margin-bottom: 1rem !important;
+}
+
+.prose h2,
+.dark .prose h2 {
+  font-size: 1.5rem !important;
+  /* 24px */
+  line-height: 2rem !important;
+  /* 32px */
+  font-weight: 600 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0.75rem !important;
+}
+
+.prose h3,
+.dark .prose h3 {
+  font-size: 1.25rem !important;
+  /* 20px */
+  line-height: 1.75rem !important;
+  /* 28px */
+  font-weight: 600 !important;
+  margin-top: 0 !important;
+  margin-bottom: 0.5rem !important;
+}
+
+/* Add list styles */
+.prose ul,
+.dark .prose ul {
+  list-style-type: disc !important;
+  padding-left: 1.5rem !important;
+  margin-top: 1rem !important;
+  margin-bottom: 1rem !important;
+}
+
+.prose ol,
+.dark .prose ol {
+  list-style-type: decimal !important;
+  padding-left: 1.5rem !important;
+  margin-top: 1rem !important;
+  margin-bottom: 1rem !important;
+}
+
+.prose li,
+.dark .prose li {
+  margin-top: 0.25rem !important;
+  margin-bottom: 0.25rem !important;
+}
+
+/* Editor styles */
+.editor-toolbar {
+  position: relative;
+}
+
+.editor-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.editor-btn:hover:not([disabled]) {
+  background-color: var(--color-accent);
+  color: var(--color-accent-foreground);
+}
+
+.editor-btn[disabled] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.editor-btn-group {
+  display: flex;
+}
+
+/* Add styles for the editor content area */
+.ProseMirror {
+  outline: none;
+}
+
+.ProseMirror p {
+  margin: 0.5em 0;
+}
+
+.ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  display: block;
+  margin: 1em 0;
+  border-radius: 0.375rem;
+}
+
+.ProseMirror a {
+  color: var(--color-primary);
+  text-decoration: underline;
 }
