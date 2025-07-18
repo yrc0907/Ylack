@@ -12,6 +12,17 @@ import {
 import { useCallback, useState, useEffect, useRef } from "react";
 import EmojiPicker, { EmojiClickData } from "emoji-picker-react";
 
+// Message interface
+export interface Message {
+  id: string;
+  content: string;
+  sender: {
+    name: string;
+    avatar: string;
+  };
+  timestamp: Date;
+}
+
 // Helper function to handle file reading
 const readFileAsDataURL = (file: File): Promise<string> => {
   return new Promise((resolve, reject) => {
@@ -22,7 +33,11 @@ const readFileAsDataURL = (file: File): Promise<string> => {
   });
 };
 
-const Tiptap = () => {
+interface TiptapProps {
+  onSend?: (content: string) => void;
+}
+
+const Tiptap = ({ onSend }: TiptapProps) => {
   const [hasContent, setHasContent] = useState(false);
 
   const editor = useEditor({
@@ -80,7 +95,7 @@ const Tiptap = () => {
       <div className="flex-grow">
         <EditorContent editor={editor} />
       </div>
-      <Footer editor={editor} hasContent={hasContent} />
+      <Footer editor={editor} hasContent={hasContent} onSend={onSend} />
     </div>
   );
 };
@@ -168,7 +183,7 @@ const LinkEditor = ({ currentUrl, onSetLink, onCancel }: { currentUrl: string, o
   )
 }
 
-const Footer = ({ editor, hasContent }: { editor: Editor | null, hasContent: boolean }) => {
+const Footer = ({ editor, hasContent, onSend }: { editor: Editor | null, hasContent: boolean, onSend?: (content: string) => void }) => {
   const [isEmojiPickerVisible, setEmojiPickerVisible] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -204,6 +219,20 @@ const Footer = ({ editor, hasContent }: { editor: Editor | null, hasContent: boo
     fileInputRef.current?.click();
   };
 
+  const handleSend = () => {
+    if (!hasContent || !editor) return;
+
+    const content = editor.getHTML();
+
+    // Call the onSend callback if provided
+    if (onSend) {
+      onSend(content);
+    }
+
+    // Clear the editor content
+    editor.commands.clearContent();
+  };
+
   return (
     <div className="flex items-center p-2 border-t relative">
       {isEmojiPickerVisible && (
@@ -228,11 +257,11 @@ const Footer = ({ editor, hasContent }: { editor: Editor | null, hasContent: boo
         />
       </div>
       <div className="ml-auto">
-        <button title="Send" disabled={!hasContent} className={`p-2 rounded-md ${hasContent ? 'bg-green-500 text-white' : 'bg-green-300 text-white cursor-not-allowed'}`}
-          onClick={() => {
-            console.log(editor.getHTML());
-            editor.commands.clearContent();
-          }}
+        <button
+          title="Send"
+          disabled={!hasContent}
+          className={`p-2 rounded-md ${hasContent ? 'bg-green-500 text-white hover:bg-green-600' : 'bg-green-300 text-white cursor-not-allowed'}`}
+          onClick={handleSend}
         >
           <Send className="w-5 h-5" />
         </button>
