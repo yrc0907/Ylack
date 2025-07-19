@@ -24,6 +24,7 @@ model User {
   sessions      Session[]
   workspaces    WorkspaceMember[]
   messages      Message[]
+  reactions     MessageReaction[]
 }
 
 model Session {
@@ -83,18 +84,37 @@ model Channel {
 }
 
 model Message {
-  id        String   @id @default(cuid())
-  content   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  channelId String
-  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
-  workspaceId String
-  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  id           String           @id @default(cuid())
+  content      String
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+  userId       String
+  user         User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channelId    String
+  channel      Channel          @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  workspaceId  String
+  workspace    Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  replyToId    String?          // 回复的消息ID
+  replyTo      Message?         @relation("ReplyMessages", fields: [replyToId], references: [id], onDelete: SetNull)
+  replies      Message[]        @relation("ReplyMessages")
+  reactions    MessageReaction[]
 
   @@index([channelId])
   @@index([userId])
   @@index([workspaceId])
+  @@index([replyToId])
+}
+
+model MessageReaction {
+  id        String   @id @default(cuid())
+  emoji     String   // 表情符号的Unicode或自定义ID
+  messageId String
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@index([messageId])
+  @@index([userId])
+  @@index([messageId, userId, emoji])
 }

@@ -11,7 +11,7 @@ const getIOInstance = async () => {
       method: 'GET',
       cache: 'no-store',
     });
-    
+
     // 此时Socket.IO服务器应该已经初始化
     return true;
   } catch (error) {
@@ -45,6 +45,20 @@ export async function GET(
             image: true,
           },
         },
+        replyTo: {
+          select: {
+            id: true,
+            content: true,
+            userId: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                username: true,
+              },
+            },
+          },
+        },
       },
       orderBy: {
         createdAt: "asc",
@@ -73,7 +87,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { content } = await req.json();
+    const { content, replyToId } = await req.json();
 
     if (!content) {
       return NextResponse.json(
@@ -82,12 +96,31 @@ export async function POST(
       );
     }
 
+    // 如果提供了回复ID，则验证该消息是否存在
+    if (replyToId) {
+      const replyToMessage = await prisma.message.findUnique({
+        where: {
+          id: replyToId,
+          channelId,
+          workspaceId,
+        },
+      });
+
+      if (!replyToMessage) {
+        return NextResponse.json(
+          { error: "被回复的消息不存在或不在当前频道" },
+          { status: 400 }
+        );
+      }
+    }
+
     const newMessage = await prisma.message.create({
       data: {
         content,
         userId: session.user.id,
         channelId,
         workspaceId,
+        replyToId, // 如果提供了回复ID，则设置回复关系
       },
       include: {
         user: {
@@ -98,6 +131,20 @@ export async function POST(
             image: true,
           },
         },
+        replyTo: replyToId ? {
+          select: {
+            id: true,
+            content: true,
+            userId: true,
+            user: {
+              select: {
+                id: true,
+                name: true,
+                username: true,
+              },
+            },
+          },
+        } : false,
       },
     });
 
