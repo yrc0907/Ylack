@@ -35,9 +35,10 @@ const readFileAsDataURL = (file: File): Promise<string> => {
 
 interface TiptapProps {
   onSend?: (content: string) => void;
+  onTyping?: () => void;
 }
 
-const Tiptap = ({ onSend }: TiptapProps) => {
+const Tiptap = ({ onSend, onTyping }: TiptapProps) => {
   const [hasContent, setHasContent] = useState(false);
 
   const editor = useEditor({
@@ -85,6 +86,10 @@ const Tiptap = ({ onSend }: TiptapProps) => {
     },
     onUpdate: ({ editor }) => {
       setHasContent(editor.getText().trim().length > 0);
+      // Call onTyping when content changes
+      if (onTyping) {
+        onTyping();
+      }
     },
     immediatelyRender: false,
   });

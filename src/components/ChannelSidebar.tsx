@@ -25,7 +25,7 @@ interface Channel {
 }
 
 export function ChannelSidebar() {
-  const { currentWorkspace, isLoading: isWorkspaceLoading } = useWorkspace();
+  const { currentWorkspace, isLoading: isWorkspaceLoading, switchChannel, currentChannel } = useWorkspace();
   const { data: session } = useSession();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isInviteOpen, setIsInviteOpen] = useState(false);
@@ -157,7 +157,11 @@ export function ChannelSidebar() {
                 <p className="p-2 text-sm text-gray-400">Loading channels...</p>
               ) : (
                 channels.map((channel) => (
-                  <button key={channel.id} className="w-full flex items-center p-2 text-sm font-medium text-left text-gray-200 rounded-md hover:bg-purple-700/50">
+                  <button
+                    key={channel.id}
+                    className={`w-full flex items-center p-2 text-sm font-medium text-left text-gray-200 rounded-md hover:bg-purple-700/50 ${currentChannel?.id === channel.id ? 'bg-purple-700/70' : ''}`}
+                    onClick={() => switchChannel(channel)}
+                  >
                     <span className="mr-2">#</span>
                     {channel.name}
                   </button>

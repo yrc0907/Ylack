@@ -12,14 +12,24 @@ export interface Workspace {
   role?: string;
 }
 
+// 定义频道类型
+export interface Channel {
+  id: string;
+  name: string;
+  description?: string | null;
+  type?: string;
+}
+
 // 定义上下文的类型
 interface WorkspaceContextType {
   currentWorkspace: Workspace | null;
   workspaces: Workspace[];
+  currentChannel: Channel | null;
   isLoading: boolean;
   error: string | null;
   switchWorkspace: (workspaceId: string) => Promise<void>;
   fetchWorkspaces: () => Promise<Workspace[]>;
+  switchChannel: (channel: Channel | null) => void;
 }
 
 // 创建上下文
@@ -29,6 +39,7 @@ const WorkspaceContext = createContext<WorkspaceContextType | undefined>(undefin
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [currentWorkspace, setCurrentWorkspace] = useState<Workspace | null>(null);
   const [workspaces, setWorkspaces] = useState<Workspace[]>([]);
+  const [currentChannel, setCurrentChannel] = useState<Channel | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
@@ -84,6 +95,13 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     router.refresh();
   };
 
+  const switchChannel = (channel: Channel | null) => {
+    setCurrentChannel(channel);
+    if (channel) {
+      router.push(`/dashboard/workspace/${currentWorkspace?.id}/channel/${channel.id}`);
+    }
+  };
+
   // 初始化时获取工作区列表
   useEffect(() => {
     const savedWorkspaceId = localStorage.getItem('currentWorkspaceId');
@@ -105,10 +123,12 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const contextValue: WorkspaceContextType = {
     currentWorkspace,
     workspaces,
+    currentChannel,
     isLoading,
     error,
     switchWorkspace,
     fetchWorkspaces,
+    switchChannel,
   };
 
   return (
