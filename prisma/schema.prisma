@@ -23,6 +23,7 @@ model User {
   updatedAt     DateTime    @updatedAt
   sessions      Session[]
   workspaces    WorkspaceMember[]
+  messages      Message[]
 }
 
 model Session {
@@ -42,6 +43,7 @@ model Workspace {
   members     WorkspaceMember[]
   channels    Channel[]
   invites     WorkspaceInvite[]
+  messages    Message[]
 }
 
 model WorkspaceInvite {
@@ -77,4 +79,22 @@ model Channel {
   workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  messages    Message[]
+}
+
+model Message {
+  id        String   @id @default(cuid())
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  channelId String
+  channel   Channel  @relation(fields: [channelId], references: [id], onDelete: Cascade)
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([channelId])
+  @@index([userId])
+  @@index([workspaceId])
 }
