@@ -1,7 +1,7 @@
 "use client";
 
 import { Message } from "./editor";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useMemo } from "react";
 
 interface MessageListProps {
   messages: Message[];
@@ -15,15 +15,34 @@ export default function MessageList({ messages, currentUser }: MessageListProps)
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const prevMessagesLengthRef = useRef(messages.length);
 
+  // 去重并确保消息ID唯一
+  const uniqueMessages = useMemo(() => {
+    const seen = new Set();
+    return messages.filter(message => {
+      // 提取基本ID（去除可能的client-前缀）
+      const baseId = message.id.startsWith('client-') 
+        ? message.id.substring(7) // 去掉 'client-' 前缀
+        : message.id;
+      
+      // 检查我们是否已经有这个ID（原始形式或客户端形式）
+      const fullKey = `${baseId}-${message.sender.name}`;
+      if (seen.has(fullKey)) {
+        return false;
+      }
+      seen.add(fullKey);
+      return true;
+    });
+  }, [messages]);
+
   // Scroll to bottom whenever messages change
   useEffect(() => {
     if (messagesEndRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
-    prevMessagesLengthRef.current = messages.length;
-  }, [messages]);
+    prevMessagesLengthRef.current = uniqueMessages.length;
+  }, [uniqueMessages]);
 
-  if (messages.length === 0) {
+  if (uniqueMessages.length === 0) {
     return (
       <div className="flex-grow flex items-center justify-center text-gray-500">
         <p>No messages yet. Start the conversation!</p>
@@ -57,7 +76,7 @@ export default function MessageList({ messages, currentUser }: MessageListProps)
 
   // Group messages by date
   const groupedMessages: { [key: string]: Message[] } = {};
-  messages.forEach(message => {
+  uniqueMessages.forEach(message => {
     const dateKey = message.timestamp.toDateString();
     if (!groupedMessages[dateKey]) {
       groupedMessages[dateKey] = [];
@@ -82,13 +101,16 @@ export default function MessageList({ messages, currentUser }: MessageListProps)
 
           {messagesForDate.map((message, msgIndex) => {
             const isCurrentUser = currentUser && message.sender.name === currentUser.name;
-            const messageAnimation = isNewMessage(messages.findIndex(m => m.id === message.id))
+            const messageAnimation = isNewMessage(uniqueMessages.findIndex(m => m.id === message.id))
               ? 'animate-messageIn'
               : '';
+              
+            // 为每条消息创建真正唯一的key
+            const uniqueKey = `${message.id}-${msgIndex}-${dateKey}`;
 
             return (
               <div
-                key={message.id}
+                key={uniqueKey}
                 className={`flex ${isCurrentUser ? 'justify-end' : 'justify-start'} ${messageAnimation}`}
                 style={{ animationDelay: `${msgIndex * 150}ms` }}
               >

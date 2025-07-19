@@ -1,39 +1,36 @@
-import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { SessionProvider } from 'next-auth/react';
+import { auth } from "@/auth";
+import { SocketProvider } from "@/context/SocketContext";
 import "./globals.css";
-import Navigation from "@/components/Navigation";
-import { NextAuthProvider } from "./providers";
+import { ThemeProvider } from '@/components/theme-provider';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-export const metadata: Metadata = {
-  title: "Auth Demo with Next.js and Auth.js",
-  description: "A simple authentication demo using Next.js, Auth.js and shadcn/ui",
+export const metadata = {
+  title: "Ylack - Team Communication Platform",
+  description: "A modern team communication platform for remote teams",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
+  const session = await auth();
+
   return (
     <html lang="en" suppressHydrationWarning>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-        suppressHydrationWarning
-      >
-        <NextAuthProvider>
-          {/* <Navigation /> */}
-          <main>{children}</main>
-        </NextAuthProvider>
+      <body className="min-h-screen">
+        <ThemeProvider
+          attribute="class"
+          defaultTheme="system"
+          enableSystem
+          disableTransitionOnChange
+        >
+          <SessionProvider session={session}>
+            <SocketProvider>
+              {children}
+            </SocketProvider>
+          </SessionProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

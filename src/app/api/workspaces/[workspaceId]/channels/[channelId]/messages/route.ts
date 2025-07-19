@@ -1,12 +1,30 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { auth } from "@/auth";
 import { prisma } from "@/lib/prisma";
+import type { Server as IOServer } from "socket.io";
+
+// 获取Socket.IO实例
+const getIOInstance = async () => {
+  try {
+    // 确保Socket.IO服务器已初始化
+    await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000'}/api/socket`, {
+      method: 'GET',
+      cache: 'no-store',
+    });
+    
+    // 此时Socket.IO服务器应该已经初始化
+    return true;
+  } catch (error) {
+    console.error("初始化Socket.IO服务器失败:", error);
+    return false;
+  }
+};
 
 export async function GET(
   req: Request,
   { params }: { params: { workspaceId: string; channelId: string } }
 ) {
-  const { workspaceId, channelId } = params;
+  const { workspaceId, channelId } = await params;
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -45,10 +63,10 @@ export async function GET(
 }
 
 export async function POST(
-  req: Request,
+  req: NextRequest,
   { params }: { params: { workspaceId: string; channelId: string } }
 ) {
-  const { workspaceId, channelId } = params;
+  const { workspaceId, channelId } = await params;
   try {
     const session = await auth();
     if (!session?.user?.id) {
@@ -82,6 +100,12 @@ export async function POST(
         },
       },
     });
+
+    // 确保Socket.IO服务器已初始化
+    await getIOInstance();
+
+    // 注意: Socket.IO广播由客户端处理，这是设计决策
+    // 客户端在收到API响应后将自己广播消息，这样可以确保消息先保存到数据库
 
     return NextResponse.json(newMessage);
   } catch (error) {
